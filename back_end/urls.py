@@ -6,7 +6,7 @@ from django.http import HttpResponse
 # admin.autodiscover()
 
 def hello(request):
-    return HttpResponse('Look, ma! I made a real rocket based on the macaroni prototype!')
+    return HttpResponse("<img src='https://is1.4sqi.net/userpix/RIT4JWH5ODUAULGA.jpg' />")
 
 urlpatterns = patterns('',
     # Examples:
