@@ -1,8 +1,12 @@
 from django.conf.urls import patterns, include, url
+from django.http import HttpResponse
 
 # Uncomment the next two lines to enable the admin:
 # from django.contrib import admin
 # admin.autodiscover()
+
+def hello(request):
+    return HttpResponse('Look, ma! I made a real rocket based on the macaroni prototype!')
 
 urlpatterns = patterns('',
     # Examples:
@@ -14,4 +18,5 @@ urlpatterns = patterns('',
 
     # Uncomment the next line to enable the admin:
     # url(r'^admin/', include(admin.site.urls)),
+    url(r'^$', hello),
 )
