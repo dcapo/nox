@@ -1,22 +1,19 @@
 from django.conf.urls import patterns, include, url
-from django.http import HttpResponse
+from django.contrib import admin
+from django.views.generic import TemplateView
+from tastypie.api import Api
+from nox.api import EventResource, UserResource, InviteResource, TextPostResource
 
-# Uncomment the next two lines to enable the admin:
-# from django.contrib import admin
-# admin.autodiscover()
+admin.autodiscover()
 
-def hello(request):
-    return HttpResponse("<img src='https://is1.4sqi.net/userpix/RIT4JWH5ODUAULGA.jpg' />")
+v1_api = Api(api_name='v1')
+v1_api.register(UserResource())
+v1_api.register(EventResource())
+v1_api.register(InviteResource())
+v1_api.register(TextPostResource())
 
 urlpatterns = patterns('',
-    # Examples:
-    # url(r'^$', 'back_end.views.home', name='home'),
-    # url(r'^back_end/', include('back_end.foo.urls')),
-
-    # Uncomment the admin/doc line below to enable admin documentation:
-    # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
-
-    # Uncomment the next line to enable the admin:
-    # url(r'^admin/', include(admin.site.urls)),
-    url(r'^$', hello),
+    url(r'^$', TemplateView.as_view(template_name="index.html")),
+    url(r'^admin/', include(admin.site.urls)),
+    url(r'^api/', include(v1_api.urls)),
 )
