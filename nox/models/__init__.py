@@ -1,4 +1,4 @@
-from event import Event
+from event import Event, EventForm
 from invite import Invite
 from post import Post
 from text_post import TextPost

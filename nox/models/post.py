@@ -13,8 +13,5 @@ class Post(InheritanceCastModel):
     latitude = models.DecimalField(max_digits=11, decimal_places=6, null=True)
     event = models.ForeignKey(Event)
     
-    def __unicode__(self):
-        return str(self.real_type)
-    
     class Meta:
         abstract = True

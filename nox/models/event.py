@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.forms import ModelForm
 
 class Event(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, editable=False)
@@ -15,3 +16,8 @@ class Event(models.Model):
     class Meta:
         db_table = "event"
         app_label = "nox"
+
+class EventForm(ModelForm):
+    class Meta:
+        model = Event
+        fields = ['name', 'asset_dir', 'ended_at']
