@@ -1,7 +1,7 @@
 from tastypie.authorization import Authorization
 from tastypie.authentication import BasicAuthentication
 from tastypie.validation import FormValidation
-from tastypie.resources import ModelResource
+from tastypie.resources import ModelResource, ALL, ALL_WITH_RELATIONS
 from tastypie import fields
 from nox.models import Event, Invite, TextPost
 from nox.models import EventForm
@@ -17,12 +17,11 @@ class UserResource(ModelResource):
 
 class EventResource(ModelResource):
     text_posts = fields.ToManyField('nox.api.TextPostResource', 'textpost_set', null=True, blank=True, full=True)
-    users = fields.ToManyField('nox.api.UserResource', 'users')
+    # users = fields.ToManyField('nox.api.UserResource', 'users')
     
     def obj_create(self, bundle, **kwargs):
-        bundle = super(EventResource, self).obj_create(bundle)
-        
         user = bundle.request.user
+        bundle = super(EventResource, self).obj_create(bundle)
         invite = Invite(user=user, event=bundle.obj, rsvp=True)
         invite.save()
         return bundle
@@ -33,6 +32,9 @@ class EventResource(ModelResource):
         authentication = BasicAuthentication()
         authorization = Authorization()
         validation = FormValidation(form_class=EventForm)
+        filtering = {
+            "id": ALL
+        }
 
 class InviteResource(ModelResource):
     user = fields.ForeignKey(UserResource, 'user')
@@ -55,3 +57,6 @@ class TextPostResource(ModelResource):
         resource_name = 'text_post'
         authentication = BasicAuthentication()
         authorization = Authorization()
+        filtering = {
+            "event": ALL_WITH_RELATIONS
+        }

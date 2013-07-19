@@ -1,7 +1,6 @@
 from django.db import models
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
-from geoposition.fields import GeopositionField
 
 from inheritance_cast_model import InheritanceCastModel
 from event import Event

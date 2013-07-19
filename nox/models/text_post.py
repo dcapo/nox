@@ -10,4 +10,3 @@ class TextPost(Post):
     class Meta:
         db_table = "text_post"
         app_label = "nox"
-        

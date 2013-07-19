@@ -8,7 +8,7 @@ class Event(models.Model):
     ended_at = models.DateTimeField(null=True, blank=True)
     name = models.CharField(max_length=255)
     asset_dir = models.CharField(max_length=64)
-    users = models.ManyToManyField(settings.AUTH_USER_MODEL, through="Invite")
+    users = models.ManyToManyField(settings.AUTH_USER_MODEL, through="Invite", blank=True)
     
     def __unicode__(self):
         return self.name
