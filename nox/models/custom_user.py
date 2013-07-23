@@ -23,8 +23,7 @@ class CustomUserManager(BaseUserManager):
         user.is_admin = True
         user.save(using=self._db)
         return user
- 
- 
+  
 class CustomUser(AbstractBaseUser):
     email = models.EmailField(max_length=254, unique=True, db_index=True)
     first_name = models.CharField(max_length=255)
