@@ -2,19 +2,21 @@ from django.conf.urls import patterns, include, url
 from django.contrib import admin
 from django.views.generic import TemplateView
 from tastypie.api import Api
-from nox.api import EventResource, UserResource, InviteResource, PostResource, TextPostResource, ImagePostResource, PlacePostResource
+from nox import api
 from . import settings
 
 admin.autodiscover()
 
 v1_api = Api(api_name='v1')
-v1_api.register(UserResource())
-v1_api.register(EventResource())
-v1_api.register(InviteResource())
-v1_api.register(TextPostResource())
-v1_api.register(ImagePostResource())
-v1_api.register(PlacePostResource())
-v1_api.register(PostResource())
+v1_api.register(api.CreateUserResource())
+v1_api.register(api.UserResource())
+v1_api.register(api.EventResource())
+v1_api.register(api.InviteResource())
+v1_api.register(api.TextPostResource())
+v1_api.register(api.ImagePostResource())
+v1_api.register(api.PlacePostResource())
+v1_api.register(api.PostResource())
+v1_api.register(api.PostCommentResource())
 
 urlpatterns = patterns('',
     url(r'^$', TemplateView.as_view(template_name="index.html")),

@@ -1,16 +1,17 @@
-from django.db import models
+from django.db import models, IntegrityError
 from django.contrib.auth import get_user_model, authenticate
 from django.conf.urls import url
 from tastypie.authorization import Authorization
-from tastypie.authentication import BasicAuthentication
+from tastypie.authentication import Authentication, BasicAuthentication
 from tastypie.validation import FormValidation
 from tastypie.resources import ModelResource, ALL, ALL_WITH_RELATIONS
 from tastypie import fields
 from tastypie.models import ApiKey, create_api_key
 from tastypie.http import HttpUnauthorized, HttpForbidden
 from tastypie.utils import trailing_slash
-from nox.models import Event, Invite, Post, TextPost, ImagePost, PlacePost
-from nox.models import EventForm
+from tastypie.exceptions import BadRequest
+from nox.models import Event, Invite, Post, TextPost, ImagePost, PlacePost, Comment
+from nox.models import EventForm, CustomUserForm
 
 User = get_user_model()
 # Create API Key for authentication
@@ -25,10 +26,38 @@ class PostMeta(CommonMeta):
         "event": ALL_WITH_RELATIONS
     }
 
+class CreateUserResource(ModelResource):
+    class Meta:
+        queryset = User.objects.all()
+        validation = FormValidation(form_class=CustomUserForm)
+        resource_name = 'create_user'
+        authentication = Authentication()
+        authorization = Authorization()
+        always_return_data = True
+        allowed_methods = ['post']
+        fields = ['email', 'first_name', 'last_name', 'last_login']
+    
+    def obj_create(self, bundle, **kwargs):
+        bundle = super(CreateUserResource, self).obj_create(bundle, **kwargs)
+        bundle.obj.set_password(bundle.data.get('password'))
+        bundle.obj.save()
+        return bundle
+    
+    def dehydrate(self, bundle):
+        try:
+            api_key = ApiKey.objects.get(user=bundle.obj)
+        except ApiKey.DoesNotExist:
+            raise BadRequest('Failed to retrieve an API Key for the new user.')
+        
+        bundle.data['api_key'] = api_key.key
+        del bundle.data['password']
+        return bundle
+        
 class UserResource(ModelResource):
     class Meta(CommonMeta):
         queryset = User.objects.all()
         resource_name = 'user'
+        allowed_methods = ['get', 'put', 'patch', 'delete']
         fields = ['email', 'first_name', 'last_name', 'last_login']
     
     def prepend_urls(self):
@@ -140,7 +169,7 @@ class PlacePostResource(ModelResource):
 
     class Meta(PostMeta):
         queryset = PlacePost.objects.all()
-        resource_name = 'text_post'
+        resource_name = 'place_post'
 
 class PostResource(ModelResource):
     def dehydrate(self, bundle):
@@ -157,3 +186,21 @@ class PostResource(ModelResource):
     class Meta(PostMeta):
         queryset = Post.objects.all().select_subclasses()
         resource_name = 'post'
+        filtering = {
+            "id": ALL
+        }
+
+class PostCommentResource(ModelResource):
+    post = fields.ForeignKey(PostResource, 'post')
+    user = fields.ForeignKey(UserResource, 'user')
+    fields = ['body', 'post', 'user']
+    
+    def obj_create(self, bundle, **kwargs):
+        return super(PostCommentResource, self).obj_create(bundle, user=bundle.request.user)
+    
+    class Meta(CommonMeta):
+        queryset = Comment.objects.all()
+        resource_name = 'comment'
+        filtering = {
+            "post": ALL_WITH_RELATIONS
+        }

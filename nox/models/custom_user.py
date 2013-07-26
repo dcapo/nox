@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
+from django.forms import ModelForm
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, first_name, last_name, password=None):
@@ -64,3 +65,8 @@ class CustomUser(AbstractBaseUser):
     class Meta:
         db_table = "custom_user"
         app_label = "nox"
+
+class CustomUserForm(ModelForm):
+    class Meta:
+        model = CustomUser
+        fields = ['email', 'password', 'first_name']

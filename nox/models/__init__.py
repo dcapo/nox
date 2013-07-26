@@ -4,5 +4,5 @@ from post import Post
 from text_post import TextPost
 from image_post import ImagePost
 from place_post import PlacePost
-from inheritance_cast_model import InheritanceCastModel
-from custom_user import CustomUser
+from custom_user import CustomUser, CustomUserForm
+from comment import Comment
