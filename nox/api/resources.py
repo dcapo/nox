@@ -2,6 +2,7 @@ from django.db import models, IntegrityError
 from django.contrib.auth import get_user_model, authenticate
 from django.conf.urls import url
 from tastypie.authorization import Authorization
+from authorizations import EventAuthorization, PostAuthorization, InviteAuthorization
 from tastypie.authentication import Authentication, BasicAuthentication
 from tastypie.validation import FormValidation
 from tastypie.resources import ModelResource, ALL, ALL_WITH_RELATIONS
@@ -9,7 +10,7 @@ from tastypie import fields
 from tastypie.models import ApiKey, create_api_key
 from tastypie.http import HttpUnauthorized, HttpForbidden
 from tastypie.utils import trailing_slash
-from tastypie.exceptions import BadRequest
+from tastypie.exceptions import BadRequest, Unauthorized
 from nox.models import Event, Invite, Post, TextPost, ImagePost, PlacePost, Comment
 from nox.models import EventForm, CustomUserForm
 
@@ -20,8 +21,10 @@ models.signals.post_save.connect(create_api_key, sender=User)
 class CommonMeta:
     authentication = BasicAuthentication()
     authorization = Authorization()
+    always_return_data = True
 
 class PostMeta(CommonMeta):
+    authorization = PostAuthorization()
     filtering = {
         "event": ALL_WITH_RELATIONS
     }
@@ -58,6 +61,7 @@ class UserResource(ModelResource):
         queryset = User.objects.all()
         resource_name = 'user'
         allowed_methods = ['get', 'put', 'patch', 'delete']
+        always_return_data = True
         fields = ['email', 'first_name', 'last_name', 'last_login']
     
     def prepend_urls(self):
@@ -89,12 +93,12 @@ class UserResource(ModelResource):
             else:
                 return self.create_response(request, {
                     'success': False,
-                    'reason': 'disabled',
+                    'reason': 'Your account has been deactivated.',
                 }, HttpForbidden )
         else:
             return self.create_response(request, {
                 'success': False,
-                'reason': 'incorrect',
+                'reason': 'Your username or password is incorrect.',
             }, HttpUnauthorized )
 
 class EventResource(ModelResource):
@@ -108,6 +112,8 @@ class EventResource(ModelResource):
     class Meta(CommonMeta):
         queryset = Event.objects.all()
         resource_name = 'event'
+        always_return_data = True
+        authorization = EventAuthorization()
         validation = FormValidation(form_class=EventForm)
         filtering = {
             "id": ALL
@@ -121,6 +127,10 @@ class InviteResource(ModelResource):
         queryset = Invite.objects.all()
         resource_name = 'invite'
         fields = ['user', 'event', 'rsvp']
+        authorization = InviteAuthorization()
+        filtering = {
+            "event": ALL_WITH_RELATIONS
+        }
         
 class TextPostResource(ModelResource):
     event = fields.ForeignKey(EventResource, 'event')
@@ -172,6 +182,8 @@ class PlacePostResource(ModelResource):
         resource_name = 'place_post'
 
 class PostResource(ModelResource):
+    event = fields.ForeignKey(EventResource, 'event')
+    
     def dehydrate(self, bundle):
         if isinstance(bundle.obj, TextPost):
             text_post_resource = TextPostResource()
@@ -184,11 +196,9 @@ class PostResource(ModelResource):
         return bundle
 
     class Meta(PostMeta):
+        authorization = PostAuthorization()
         queryset = Post.objects.all().select_subclasses()
         resource_name = 'post'
-        filtering = {
-            "id": ALL
-        }
 
 class PostCommentResource(ModelResource):
     post = fields.ForeignKey(PostResource, 'post')
