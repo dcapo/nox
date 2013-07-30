@@ -133,6 +133,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 AUTH_USER_MODEL = 'nox.CustomUser'
 TASTYPIE_DEFAULT_FORMATS = ['json']
+TASTYPIE_ALLOW_MISSING_SLASH = True
 
 # A sample logging configuration. The only tangible logging
 # performed by this configuration is to send an email to
