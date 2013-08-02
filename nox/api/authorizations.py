@@ -61,7 +61,7 @@ class InviteAuthorization(BaseAuthorization):
         return object_list.filter(event__id__in=events)
 
     def read_detail(self, object_list, bundle):
-        return bundle.request.user == bundle.obj.user
+        return bundle.request.user in bundle.obj.event.users.all()
 
     def create_detail(self, object_list, bundle):
         event_id = super(InviteAuthorization, self).get_id("event", bundle.data.get("event"))
@@ -74,3 +74,24 @@ class InviteAuthorization(BaseAuthorization):
 
     def update_detail(self, object_list, bundle):
         return bundle.request.user in bundle.obj.event.users.all()
+
+class CommentAuthorization(BaseAuthorization):
+    def read_list(self, object_list, bundle):
+        events = bundle.request.user.invite_set.values('event_id')
+        return object_list.filter(post__event__id__in=events)
+        
+    def read_detail(self, object_list, bundle):
+        return bundle.request.user in bundle.obj.post.event.users.all()
+
+    def create_detail(self, object_list, bundle):
+        import pdb; pdb.set_trace()
+        post_id = super(CommentAuthorization, self).get_id("post", bundle.data.get("post"))
+        event = Event.objects.get(id=event_id)
+        user = bundle.request.user
+        return user in event.users.all()
+
+    def delete_detail(self, object_list, bundle):
+        return bundle.request.user == bundle.obj.user
+
+    def update_detail(self, object_list, bundle):
+        raise Unauthorized("Sorry, updating a comment is not allowed.")

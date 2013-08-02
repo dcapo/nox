@@ -2,7 +2,7 @@ from django.db import models, IntegrityError
 from django.contrib.auth import get_user_model, authenticate
 from django.conf.urls import url
 from tastypie.authorization import Authorization
-from authorizations import EventAuthorization, PostAuthorization, InviteAuthorization
+from authorizations import EventAuthorization, PostAuthorization, InviteAuthorization, CommentAuthorization
 from tastypie.authentication import Authentication, BasicAuthentication
 from tastypie.validation import FormValidation
 from tastypie.resources import ModelResource, ALL, ALL_WITH_RELATIONS
@@ -26,7 +26,8 @@ class CommonMeta:
 class PostMeta(CommonMeta):
     authorization = PostAuthorization()
     filtering = {
-        "event": ALL_WITH_RELATIONS
+        "event": ALL_WITH_RELATIONS,
+        "id": ALL
     }
 
 class CreateUserResource(ModelResource):
@@ -115,6 +116,7 @@ class EventResource(ModelResource):
         always_return_data = True
         authorization = EventAuthorization()
         validation = FormValidation(form_class=EventForm)
+        fields = ['id', 'name', 'created_at', 'updated_at', 'ended_at']
         filtering = {
             "id": ALL
         }
@@ -126,7 +128,7 @@ class InviteResource(ModelResource):
     class Meta(CommonMeta):
         queryset = Invite.objects.all()
         resource_name = 'invite'
-        fields = ['user', 'event', 'rsvp']
+        fields = ['id', 'user', 'event', 'rsvp']
         authorization = InviteAuthorization()
         filtering = {
             "event": ALL_WITH_RELATIONS
@@ -196,8 +198,8 @@ class PostResource(ModelResource):
         return bundle
 
     class Meta(PostMeta):
-        authorization = PostAuthorization()
         queryset = Post.objects.all().select_subclasses()
+        authorization = PostAuthorization()
         resource_name = 'post'
 
 class PostCommentResource(ModelResource):
@@ -208,8 +210,14 @@ class PostCommentResource(ModelResource):
     def obj_create(self, bundle, **kwargs):
         return super(PostCommentResource, self).obj_create(bundle, user=bundle.request.user)
     
+    def build_filters(self, filters=None):
+        if 'post__id' not in filters and 'event__id' not in filters:
+            raise BadRequest("Comments must be filtered by post or event.")
+        return super(PostCommentResource, self).build_filters(filters)
+    
     class Meta(CommonMeta):
         queryset = Comment.objects.all()
+        authorization = CommentAuthorization()
         resource_name = 'comment'
         filtering = {
             "post": ALL_WITH_RELATIONS
