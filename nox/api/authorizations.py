@@ -1,6 +1,6 @@
 from tastypie.exceptions import Unauthorized
 from tastypie.authorization import Authorization
-from nox.models import Event
+from nox.models import Event, Post
 import re
 
 class BaseAuthorization(Authorization):
@@ -84,11 +84,10 @@ class CommentAuthorization(BaseAuthorization):
         return bundle.request.user in bundle.obj.post.event.users.all()
 
     def create_detail(self, object_list, bundle):
-        import pdb; pdb.set_trace()
         post_id = super(CommentAuthorization, self).get_id("post", bundle.data.get("post"))
-        event = Event.objects.get(id=event_id)
+        post = Post.objects.get(id=post_id)
         user = bundle.request.user
-        return user in event.users.all()
+        return user in post.event.users.all()
 
     def delete_detail(self, object_list, bundle):
         return bundle.request.user == bundle.obj.user
