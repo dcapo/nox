@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model, authenticate
 from django.conf.urls import url
 from tastypie.authorization import Authorization
 from authorizations import EventAuthorization, PostAuthorization, InviteAuthorization, SubPostAuthorization
+from validations import ModelFormValidation
 from tastypie.authentication import Authentication, BasicAuthentication
 from tastypie.validation import FormValidation
 from tastypie.resources import ModelResource, ALL, ALL_WITH_RELATIONS
@@ -253,11 +254,12 @@ class PostOpinionResource(ModelResource):
 class PostLikeResource(PostOpinionResource):
     class Meta(PostOpinionMeta):
         queryset = PostLike.objects.all()
-        validation = FormValidation(form_class=PostLikeForm)
+        validation = ModelFormValidation(form_class=PostLikeForm)
         resource_name = 'post_like'
 
 class PostDislikeResource(ModelResource):
     class Meta(CommonMeta):
         queryset = PostDislike.objects.all()
-        validation = FormValidation(form_class=PostDislikeForm)
+        validation = ModelFormValidation(form_class=PostDislikeForm)
         resource_name = 'post_dislike'
+
