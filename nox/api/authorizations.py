@@ -75,7 +75,8 @@ class InviteAuthorization(BaseAuthorization):
     def update_detail(self, object_list, bundle):
         return bundle.request.user in bundle.obj.event.users.all()
 
-class CommentAuthorization(BaseAuthorization):
+# SubPost = comment, like, dislike
+class SubPostAuthorization(BaseAuthorization):
     def read_list(self, object_list, bundle):
         events = bundle.request.user.invite_set.values('event_id')
         return object_list.filter(post__event__id__in=events)
@@ -84,7 +85,7 @@ class CommentAuthorization(BaseAuthorization):
         return bundle.request.user in bundle.obj.post.event.users.all()
 
     def create_detail(self, object_list, bundle):
-        post_id = super(CommentAuthorization, self).get_id("post", bundle.data.get("post"))
+        post_id = super(SubPostAuthorization, self).get_id("post", bundle.data.get("post"))
         post = Post.objects.get(id=post_id)
         user = bundle.request.user
         return user in post.event.users.all()
@@ -93,4 +94,5 @@ class CommentAuthorization(BaseAuthorization):
         return bundle.request.user == bundle.obj.user
 
     def update_detail(self, object_list, bundle):
-        raise Unauthorized("Sorry, updating a comment is not allowed.")
+        raise Unauthorized("Sorry, updating is not allowed on this resource.")
+

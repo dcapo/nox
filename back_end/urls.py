@@ -17,11 +17,13 @@ v1_api.register(api.ImagePostResource())
 v1_api.register(api.PlacePostResource())
 v1_api.register(api.PostResource())
 v1_api.register(api.PostCommentResource())
+v1_api.register(api.PostLikeResource())
+v1_api.register(api.PostDislikeResource())
 
 urlpatterns = patterns('',
     url(r'^$', TemplateView.as_view(template_name="index.html")),
     url(r'^admin/', include(admin.site.urls)),
     url(r'^api/', include(v1_api.urls)),
-    (r'^(?P<path>.*)$', 'django.views.static.serve', 
-       {'document_root': settings.MEDIA_ROOT}),
+     (r'^(?P<path>.*)$', 'django.views.static.serve', 
+        {'document_root': settings.MEDIA_ROOT}),
 )

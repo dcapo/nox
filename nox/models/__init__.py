@@ -6,3 +6,5 @@ from image_post import ImagePost
 from place_post import PlacePost
 from custom_user import CustomUser, CustomUserForm
 from comment import Comment
+from like import PostLike, PostLikeForm
+from dislike import PostDislike, PostDislikeForm

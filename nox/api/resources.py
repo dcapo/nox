@@ -2,7 +2,7 @@ from django.db import models, IntegrityError
 from django.contrib.auth import get_user_model, authenticate
 from django.conf.urls import url
 from tastypie.authorization import Authorization
-from authorizations import EventAuthorization, PostAuthorization, InviteAuthorization, CommentAuthorization
+from authorizations import EventAuthorization, PostAuthorization, InviteAuthorization, SubPostAuthorization
 from tastypie.authentication import Authentication, BasicAuthentication
 from tastypie.validation import FormValidation
 from tastypie.resources import ModelResource, ALL, ALL_WITH_RELATIONS
@@ -11,8 +11,8 @@ from tastypie.models import ApiKey, create_api_key
 from tastypie.http import HttpUnauthorized, HttpForbidden
 from tastypie.utils import trailing_slash
 from tastypie.exceptions import BadRequest, Unauthorized
-from nox.models import Event, Invite, Post, TextPost, ImagePost, PlacePost, Comment
-from nox.models import EventForm, CustomUserForm
+from nox.models import Event, Invite, Post, TextPost, ImagePost, PlacePost, Comment, PostLike, PostDislike
+from nox.models import EventForm, CustomUserForm, PostLikeForm, PostDislikeForm
 
 User = get_user_model()
 # Create API Key for authentication
@@ -28,6 +28,13 @@ class PostMeta(CommonMeta):
     filtering = {
         "event": ALL_WITH_RELATIONS,
         "id": ALL
+    }
+
+class PostOpinionMeta(CommonMeta):
+    fields = ['id', 'user', 'post']
+    authorization = SubPostAuthorization()
+    filtering = {
+        "post": ALL_WITH_RELATIONS
     }
 
 class CreateUserResource(ModelResource):
@@ -185,6 +192,7 @@ class PlacePostResource(ModelResource):
 
 class PostResource(ModelResource):
     event = fields.ForeignKey(EventResource, 'event')
+    likes = fields.ToManyField(UserResource, 'likes', null=True)
     
     def dehydrate(self, bundle):
         if isinstance(bundle.obj, TextPost):
@@ -195,6 +203,13 @@ class PostResource(ModelResource):
             image_post_resource = ImagePostResource()
             image_post_bundle = image_post_resource.build_bundle(obj=bundle.obj, request=bundle.request)
             bundle.data = image_post_resource.full_dehydrate(image_post_bundle).data
+        bundle.data['comment_count'] = bundle.obj.comment_set.count()
+        bundle.data['like_count'] = bundle.obj.likes.count()
+        bundle.data['dislike_count'] = bundle.obj.dislikes.count()
+        try:
+            bundle.data['first_comment'] = bundle.obj.comment_set.all()[:1].get()
+        except Comment.DoesNotExist:
+            bundle.data['first_comment'] = None;
         return bundle
 
     class Meta(PostMeta):
@@ -217,8 +232,32 @@ class PostCommentResource(ModelResource):
     
     class Meta(CommonMeta):
         queryset = Comment.objects.all()
-        authorization = CommentAuthorization()
+        authorization = SubPostAuthorization()
         resource_name = 'comment'
         filtering = {
             "post": ALL_WITH_RELATIONS
         }
+        
+class PostOpinionResource(ModelResource):
+    user = fields.ForeignKey(UserResource, 'user')
+    post = fields.ForeignKey(PostResource, 'post')
+    
+    def obj_create(self, bundle, **kwargs):
+        return super(PostOpinionResource, self).obj_create(bundle, user=bundle.request.user)
+    
+    def build_filters(self, filters=None):
+        if 'post__id' not in filters and 'event__id' not in filters:
+            raise BadRequest("This resource must be filtered by post or event.")
+        return super(PostOpinionResource, self).build_filters(filters)
+    
+class PostLikeResource(PostOpinionResource):
+    class Meta(PostOpinionMeta):
+        queryset = PostLike.objects.all()
+        validation = FormValidation(form_class=PostLikeForm)
+        resource_name = 'post_like'
+
+class PostDislikeResource(ModelResource):
+    class Meta(CommonMeta):
+        queryset = PostDislike.objects.all()
+        validation = FormValidation(form_class=PostDislikeForm)
+        resource_name = 'post_dislike'

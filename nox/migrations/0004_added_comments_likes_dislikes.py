@@ -8,50 +8,60 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
+        # Adding model 'PostDislike'
+        db.create_table('post_dislike', (
+            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['nox.CustomUser'])),
+            ('post', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['nox.Post'])),
+        ))
+        db.send_create_signal('nox', ['PostDislike'])
+
+        # Adding model 'PostLike'
+        db.create_table('post_like', (
+            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['nox.CustomUser'])),
+            ('post', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['nox.Post'])),
+        ))
+        db.send_create_signal('nox', ['PostLike'])
+
+        # Adding unique constraint on 'PostLike', fields ['user', 'post']
+        db.create_unique('post_like', ['user_id', 'post_id'])
+
         # Adding model 'Comment'
         db.create_table('comment', (
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('created_at', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
             ('body', self.gf('django.db.models.fields.TextField')()),
+            ('longitude', self.gf('django.db.models.fields.DecimalField')(null=True, max_digits=11, decimal_places=6)),
+            ('latitude', self.gf('django.db.models.fields.DecimalField')(null=True, max_digits=11, decimal_places=6)),
             ('post', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['nox.Post'])),
             ('user', self.gf('django.db.models.fields.related.ForeignKey')(related_name='+', to=orm['nox.CustomUser'])),
         ))
         db.send_create_signal('nox', ['Comment'])
 
-        # Adding M2M table for field likes on 'Post'
-        m2m_table_name = db.shorten_name('post_likes')
-        db.create_table(m2m_table_name, (
-            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('post', models.ForeignKey(orm['nox.post'], null=False)),
-            ('user', models.ForeignKey(orm['nox.customuser'], null=False))
-        ))
-        db.create_unique(m2m_table_name, ['post_id', 'user_id'])
-
-        # Adding M2M table for field dislikes on 'Post'
-        m2m_table_name = db.shorten_name('post_dislikes')
-        db.create_table(m2m_table_name, (
-            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('post', models.ForeignKey(orm['nox.post'], null=False)),
-            ('user', models.ForeignKey(orm['nox.customuser'], null=False))
-        ))
-        db.create_unique(m2m_table_name, ['post_id', 'user_id'])
-
 
     def backwards(self, orm):
+        # Removing unique constraint on 'PostLike', fields ['user', 'post']
+        db.delete_unique('post_like', ['user_id', 'post_id'])
+
+        # Deleting model 'PostDislike'
+        db.delete_table('post_dislike')
+
+        # Deleting model 'PostLike'
+        db.delete_table('post_like')
+
         # Deleting model 'Comment'
         db.delete_table('comment')
-
-        # Removing M2M table for field likes on 'Post'
-        db.delete_table(db.shorten_name('post_likes'))
-
-        # Removing M2M table for field dislikes on 'Post'
-        db.delete_table(db.shorten_name('post_dislikes'))
 
 
     models = {
         'nox.comment': {
             'Meta': {'object_name': 'Comment', 'db_table': "'comment'"},
             'body': ('django.db.models.fields.TextField', [], {}),
+            'created_at': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'latitude': ('django.db.models.fields.DecimalField', [], {'null': 'True', 'max_digits': '11', 'decimal_places': '6'}),
+            'longitude': ('django.db.models.fields.DecimalField', [], {'null': 'True', 'max_digits': '11', 'decimal_places': '6'}),
             'post': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['nox.Post']"}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'+'", 'to': "orm['nox.CustomUser']"})
         },
@@ -95,13 +105,25 @@ class Migration(SchemaMigration):
         'nox.post': {
             'Meta': {'object_name': 'Post', 'db_table': "'post'"},
             'created_at': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
-            'dislikes': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'related_name': "'dislikes'", 'blank': 'True', 'to': "orm['nox.CustomUser']"}),
+            'dislikes': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'related_name': "'dislikes'", 'blank': 'True', 'through': "orm['nox.PostDislike']", 'to': "orm['nox.CustomUser']"}),
             'event': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['nox.Event']"}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'latitude': ('django.db.models.fields.DecimalField', [], {'null': 'True', 'max_digits': '11', 'decimal_places': '6'}),
-            'likes': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'related_name': "'likes'", 'blank': 'True', 'db_column': "'user_id'", 'to': "orm['nox.CustomUser']"}),
+            'likes': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'related_name': "'likes'", 'blank': 'True', 'through': "orm['nox.PostLike']", 'to': "orm['nox.CustomUser']"}),
             'longitude': ('django.db.models.fields.DecimalField', [], {'null': 'True', 'max_digits': '11', 'decimal_places': '6'}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'posts'", 'to': "orm['nox.CustomUser']"})
+        },
+        'nox.postdislike': {
+            'Meta': {'object_name': 'PostDislike', 'db_table': "'post_dislike'"},
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'post': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['nox.Post']"}),
+            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['nox.CustomUser']"})
+        },
+        'nox.postlike': {
+            'Meta': {'unique_together': "(('user', 'post'),)", 'object_name': 'PostLike', 'db_table': "'post_like'"},
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'post': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['nox.Post']"}),
+            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['nox.CustomUser']"})
         },
         'nox.textpost': {
             'Meta': {'object_name': 'TextPost', 'db_table': "'text_post'", '_ormbases': ['nox.Post']},
