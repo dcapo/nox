@@ -208,7 +208,10 @@ class PostResource(ModelResource):
         bundle.data['like_count'] = bundle.obj.likes.count()
         bundle.data['dislike_count'] = bundle.obj.dislikes.count()
         try:
-            bundle.data['first_comment'] = bundle.obj.comment_set.all()[:1].get()
+            first_comment = bundle.obj.comment_set.all()[:1].get()
+            post_comment_resource = PostCommentResource()
+            post_comment_bundle = post_comment_resource.build_bundle(obj=first_comment, request=bundle.request)
+            bundle.data['first_comment'] = post_comment_resource.full_dehydrate(post_comment_bundle).data
         except Comment.DoesNotExist:
             bundle.data['first_comment'] = None;
         return bundle
