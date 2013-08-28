@@ -4,7 +4,7 @@ South==0.8.1
 dj-database-url==0.2.1
 django-geoposition==0.1.4
 django-model-utils==1.4.0
--e git+git://github.com/nox-app/django-tastypie.git
+-e git+git://github.com/nox-app/django-tastypie.git#egg=django-tastypie
 mimeparse==0.1.3
 psycopg2==2.5
 python-dateutil==2.1
