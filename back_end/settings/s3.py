@@ -1,12 +1,12 @@
 import os
-from base import DEBUG
+from base import USE_S3
 
 try: 
-    from local import DEBUG
+    from local import USE_S3
 except ImportError:
     pass
 
-if not DEBUG:
+if USE_S3:
     AWS_STORAGE_BUCKET_NAME = os.environ['AWS_STORAGE_BUCKET_NAME']
     STATICFILES_STORAGE = 'storages.backends.s3boto.S3BotoStorage'
     S3_URL = 'http://%s.s3.amazonaws.com/' % AWS_STORAGE_BUCKET_NAME
