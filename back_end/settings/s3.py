@@ -1,4 +1,6 @@
+import os
 from base import DEBUG
+
 try: 
     from local import DEBUG
 except ImportError:
