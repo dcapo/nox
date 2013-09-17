@@ -14,6 +14,7 @@ from tastypie.utils import trailing_slash
 from tastypie.exceptions import BadRequest, Unauthorized
 from nox.models import Event, Invite, Post, TextPost, ImagePost, PlacePost, Comment, PostLike, PostDislike
 from nox.models import EventForm, CustomUserForm, PostLikeForm, PostDislikeForm
+import datetime
 
 User = get_user_model()
 # Create API Key for authentication
@@ -71,7 +72,7 @@ class UserResource(ModelResource):
         resource_name = 'user'
         allowed_methods = ['get', 'put', 'patch', 'delete']
         always_return_data = True
-        fields = ['email', 'first_name', 'last_name', 'last_login']
+        fields = ['email', 'first_name', 'last_name', 'last_login', 'id']
     
     def prepend_urls(self):
         return [
@@ -95,8 +96,13 @@ class UserResource(ModelResource):
                     api_key = ApiKey.objects.get(user=user)
                 except ApiKey.DoesNotExist:
                     api_key = ApiKey.objects.create(user=user)
+                
+                user_resource = UserResource()
+                user_bundle = user_resource.build_bundle(obj=user, request=request)
+                user_json = user_resource.full_dehydrate(user_bundle).data
                 return self.create_response(request, {
                     'success': True,
+                    'user': user_json,
                     'api_key': api_key.key
                 })
             else:
@@ -113,7 +119,11 @@ class UserResource(ModelResource):
 class EventResource(ModelResource):
     def obj_create(self, bundle, **kwargs):
         user = bundle.request.user
-        bundle = super(EventResource, self).obj_create(bundle)
+        if 'started_at' in bundle.data and bundle.data['started_at']:
+            started_at = bundle.data['started_at']
+        else:
+            started_at = datetime.datetime.today()
+        bundle = super(EventResource, self).obj_create(bundle, creator=user, started_at=started_at)
         invite = Invite(user=user, event=bundle.obj, rsvp=True)
         invite.save()
         return bundle
