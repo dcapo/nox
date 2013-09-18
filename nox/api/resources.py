@@ -205,6 +205,20 @@ class PostResource(ModelResource):
     event = fields.ForeignKey(EventResource, 'event')
     likes = fields.ToManyField(UserResource, 'likes', null=True)
     
+    @staticmethod
+    def get_opinion(post, user):
+        opinion = {
+            "dislike": -1,
+            "none": 0,
+            "like": 1
+        }
+        if user in post.likes.all():
+            return opinion['like']
+        elif user in post.dislikes.all():
+            return opinion['dislike']
+        else:
+            return opinion['none']
+    
     def dehydrate(self, bundle):
         if isinstance(bundle.obj, TextPost):
             text_post_resource = TextPostResource()
@@ -217,6 +231,7 @@ class PostResource(ModelResource):
         bundle.data['comment_count'] = bundle.obj.comment_set.count()
         bundle.data['like_count'] = bundle.obj.likes.count()
         bundle.data['dislike_count'] = bundle.obj.dislikes.count()
+        bundle.data['opinion'] = PostResource.get_opinion(bundle.obj, bundle.request.user)
         try:
             first_comment = bundle.obj.comment_set.all()[:1].get()
             post_comment_resource = PostCommentResource()

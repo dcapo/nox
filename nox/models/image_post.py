@@ -18,7 +18,7 @@ class ImagePost(Post):
     image = models.ImageField(upload_to=get_upload_location)
     
     def __unicode__(self):
-        return self.image
+        return self.image.name
     
     class Meta:
         db_table = "image_post"
