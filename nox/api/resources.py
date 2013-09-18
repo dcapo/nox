@@ -134,7 +134,7 @@ class EventResource(ModelResource):
         always_return_data = True
         authorization = EventAuthorization()
         validation = FormValidation(form_class=EventForm)
-        fields = ['id', 'name', 'created_at', 'updated_at', 'ended_at']
+        fields = ['id', 'name', 'created_at', 'updated_at', 'started_at', 'ended_at']
         filtering = {
             "id": ALL
         }
@@ -233,7 +233,7 @@ class PostResource(ModelResource):
 
 class PostCommentResource(ModelResource):
     post = fields.ForeignKey(PostResource, 'post')
-    user = fields.ForeignKey(UserResource, 'user')
+    user = fields.ForeignKey(UserResource, 'user', full=True)
     fields = ['body', 'post', 'user']
     
     def obj_create(self, bundle, **kwargs):

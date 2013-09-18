@@ -18,3 +18,4 @@ class Post(models.Model):
     class Meta:
         db_table = "post"
         app_label = "nox"
+        ordering = ['-created_at']

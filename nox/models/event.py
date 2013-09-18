@@ -17,6 +17,7 @@ class Event(models.Model):
     class Meta:
         db_table = "event"
         app_label = "nox"
+        ordering = ['-started_at']
 
 class EventForm(ModelForm):
     class Meta:
