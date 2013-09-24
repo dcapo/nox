@@ -10,3 +10,4 @@ class Invite(models.Model):
     class Meta:
         db_table = "invite"
         app_label = "nox"
+        unique_together = ('user', 'event')

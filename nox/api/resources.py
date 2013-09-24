@@ -6,7 +6,7 @@ from django import forms
 from tastypie.authorization import Authorization
 from authorizations import EventAuthorization, PostAuthorization, InviteAuthorization, SubPostAuthorization
 from validations import ModelFormValidation
-from tastypie.authentication import Authentication, BasicAuthentication
+from tastypie.authentication import Authentication, ApiKeyAuthentication, BasicAuthentication
 from tastypie.validation import FormValidation
 from tastypie.resources import ModelResource, ALL, ALL_WITH_RELATIONS
 from tastypie import fields
@@ -18,6 +18,7 @@ from nox.models import Event, Invite, Post, TextPost, ImagePost, PlacePost, Comm
 from nox.models import EventForm, CustomUserForm, PostLikeForm, PostDislikeForm
 from localflavor.us.forms import USPhoneNumberField
 import datetime
+import re
 
 User = get_user_model()
 # Create API Key for authentication
@@ -96,7 +97,7 @@ class UserResource(ModelResource):
             if 'phone_numbers' in contact:
                 for phone_number in contact['phone_numbers']:
                     try:
-                        phone_number = USPhoneNumberField().clean(phone_number)
+                        phone_number = USPhoneNumberField().clean(re.sub(r"\D", "", phone_number))
                     except ValidationError:
                         continue
                     phone_numbers.add(phone_number)
@@ -112,10 +113,7 @@ class UserResource(ModelResource):
         bundles = [user_resource.build_bundle(obj=user, request=request) for user in users]
         json = [user_resource.full_dehydrate(bundle) for bundle in bundles]
         
-        return self.create_response(request, {
-            'success': True,
-            'users': json
-        })
+        return self.create_response(request, json)
                     
 
     def login(self, request, **kwargs):
