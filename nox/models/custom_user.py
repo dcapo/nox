@@ -1,6 +1,11 @@
 from django.db import models
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 from django.forms import ModelForm
+from localflavor.us.models import PhoneNumberField
+from localflavor.us.forms import USPhoneNumberField
+from south.modelsinspector import add_introspection_rules
+
+add_introspection_rules([], ["^localflavor\.us\.models\.PhoneNumberField"])
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, first_name, last_name, password=None):
@@ -29,6 +34,7 @@ class CustomUser(AbstractBaseUser):
     email = models.EmailField(max_length=254, unique=True, db_index=True)
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
+    phone_number = PhoneNumberField(unique=True)
  
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
@@ -36,7 +42,7 @@ class CustomUser(AbstractBaseUser):
     objects = CustomUserManager()
  
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['first_name', 'last_name']
+    REQUIRED_FIELDS = ['first_name', 'last_name', 'phone_number']
  
     def get_full_name(self):
         # For this case we return email. Could also be User.first_name User.last_name if you have these fields
@@ -50,23 +56,23 @@ class CustomUser(AbstractBaseUser):
         return self.email
  
     def has_perm(self, perm, obj=None):
-        # Handle whether the user has a specific permission?"
+        # Handle whether the user has a specific permission?
         return True
  
     def has_module_perms(self, app_label):
-        # Handle whether the user has permissions to view the app `app_label`?"
+        # Handle whether the user has permissions to view the app `app_label`?
         return True
  
     @property
     def is_staff(self):
-        # Handle whether the user is a member of staff?"
+        # Handle whether the user is a member of staff?
         return self.is_admin
     
     class Meta:
         db_table = "custom_user"
         app_label = "nox"
-
+        
 class CustomUserForm(ModelForm):
     class Meta:
         model = CustomUser
-        fields = ['email', 'password', 'first_name']
+        fields = ['email', 'first_name', 'last_name', 'password', 'phone_number']

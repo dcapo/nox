@@ -1,6 +1,8 @@
 from django.db import models, IntegrityError
 from django.contrib.auth import get_user_model, authenticate
 from django.conf.urls import url
+from django.core.exceptions import ValidationError
+from django import forms
 from tastypie.authorization import Authorization
 from authorizations import EventAuthorization, PostAuthorization, InviteAuthorization, SubPostAuthorization
 from validations import ModelFormValidation
@@ -14,6 +16,7 @@ from tastypie.utils import trailing_slash
 from tastypie.exceptions import BadRequest, Unauthorized
 from nox.models import Event, Invite, Post, TextPost, ImagePost, PlacePost, Comment, PostLike, PostDislike
 from nox.models import EventForm, CustomUserForm, PostLikeForm, PostDislikeForm
+from localflavor.us.forms import USPhoneNumberField
 import datetime
 
 User = get_user_model()
@@ -48,7 +51,7 @@ class CreateUserResource(ModelResource):
         authorization = Authorization()
         always_return_data = True
         allowed_methods = ['post']
-        fields = ['email', 'first_name', 'last_name', 'last_login']
+        fields = ['email', 'first_name', 'last_name', 'last_login', 'phone_number']
     
     def obj_create(self, bundle, **kwargs):
         bundle = super(CreateUserResource, self).obj_create(bundle, **kwargs)
@@ -72,14 +75,48 @@ class UserResource(ModelResource):
         resource_name = 'user'
         allowed_methods = ['get', 'put', 'patch', 'delete']
         always_return_data = True
-        fields = ['email', 'first_name', 'last_name', 'last_login', 'id']
+        validation = FormValidation(form_class=CustomUserForm)
+        fields = ['email', 'first_name', 'last_name', 'last_login', 'phone_number', 'id']
     
     def prepend_urls(self):
         return [
-            url(r"^(?P<resource_name>%s)/login%s$" %
-                (self._meta.resource_name, trailing_slash()),
-                self.wrap_view('login'), name="api_login"),
+            url(r"^(?P<resource_name>%s)/login%s$" % (self._meta.resource_name, trailing_slash()), 
+                                                      self.wrap_view('login'), name="api_login"),
+            url(r"^(?P<resource_name>%s)/search%s$" % (self._meta.resource_name, trailing_slash()),
+                                                       self.wrap_view('contact_search'), name="api_login"),
         ]
+    
+    def contact_search(self, request, **kwargs):
+        self.method_check(request, allowed=['post'])
+        
+        data = self.deserialize(request, request.body, format=request.META.get('CONTENT_TYPE', 'application/json'))
+        phone_numbers = set()
+        emails = set()
+        for contact in data:
+            if 'phone_numbers' in contact:
+                for phone_number in contact['phone_numbers']:
+                    try:
+                        phone_number = USPhoneNumberField().clean(phone_number)
+                    except ValidationError:
+                        continue
+                    phone_numbers.add(phone_number)
+            if 'emails' in contact:
+                for email in contact['emails']:
+                    try:
+                        email = forms.EmailField().clean(email)
+                    except ValidationError:
+                        continue
+                    emails.add(email)
+        users = User.objects.filter(models.Q(phone_number__in=phone_numbers) | models.Q(email__in=emails))
+        user_resource = UserResource()
+        bundles = [user_resource.build_bundle(obj=user, request=request) for user in users]
+        json = [user_resource.full_dehydrate(bundle) for bundle in bundles]
+        
+        return self.create_response(request, {
+            'success': True,
+            'users': json
+        })
+                    
 
     def login(self, request, **kwargs):
         self.method_check(request, allowed=['post'])

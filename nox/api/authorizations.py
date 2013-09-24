@@ -19,6 +19,19 @@ class BaseAuthorization(Authorization):
     def delete_list(self, object_list, bundle):
         raise Unauthorized("Sorry, deleting an entire list is not allowed.")
 
+class UserAuthorization(BaseAuthorization):
+    def read_list(self, object_list, bundle):
+        return bundle.request.user is not None
+    
+    def read_detail(self, object_list, bundle):
+        return bundle.request.user is not None
+
+    def create_detail(self, object_list, bundle):
+        raise Unauthorized("Sorry, POST is not allowed with this resource. Use the 'create_user' resource.")
+    
+    def delete_detail(self, object_list, bundle):
+        return bundle.request.user == bundle.obj
+
 class EventAuthorization(BaseAuthorization):
     def read_list(self, object_list, bundle):
         return object_list.filter(users__id__exact=bundle.request.user.id)
