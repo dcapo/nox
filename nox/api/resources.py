@@ -25,7 +25,7 @@ User = get_user_model()
 models.signals.post_save.connect(create_api_key, sender=User)
 
 class CommonMeta:
-    authentication = BasicAuthentication()
+    authentication = ApiKeyAuthentication()
     authorization = Authorization()
     always_return_data = True
 
