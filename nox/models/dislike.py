@@ -10,6 +10,7 @@ class PostDislike(models.Model):
     class Meta:
         db_table = "post_dislike"
         app_label = "nox"
+        unique_together = ('user', 'post')
 
 class PostDislikeForm(ModelForm):
     class Meta:

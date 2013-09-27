@@ -322,7 +322,7 @@ class PostLikeResource(PostOpinionResource):
         validation = ModelFormValidation(form_class=PostLikeForm)
         resource_name = 'post_like'
 
-class PostDislikeResource(ModelResource):
+class PostDislikeResource(PostOpinionResource):
     class Meta(CommonMeta):
         queryset = PostDislike.objects.all()
         validation = ModelFormValidation(form_class=PostDislikeForm)
