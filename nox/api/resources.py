@@ -232,7 +232,7 @@ class PlacePostResource(ModelResource):
     user = fields.ForeignKey(UserResource, 'user', full=True)
 
     def obj_create(self, bundle, **kwargs):
-        return super(TextPostResource, self).obj_create(bundle, user=bundle.request.user)
+        return super(PlacePostResource, self).obj_create(bundle, user=bundle.request.user)
 
     class Meta(PostMeta):
         queryset = PlacePost.objects.all()
