@@ -5,6 +5,8 @@ import string
 import random
 from back_end.settings import USE_S3
 from storages.backends.s3boto import S3BotoStorage
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 
 class ImagePost(Post):
     def random_filename(self, size=10, chars=string.ascii_lowercase + string.digits):
@@ -26,3 +28,11 @@ class ImagePost(Post):
     class Meta:
         db_table = "image_post"
         app_label = "nox"
+
+@receiver(post_delete, sender=ImagePost)
+def image_post_delete_handler(sender, **kwargs):
+    image_post = kwargs['instance']
+    storage = image_post.image.storage
+    path = image_post.image.path
+    if path:
+        storage.delete(path)

@@ -222,7 +222,7 @@ class ImagePostResource(MultipartResource, ModelResource):
     
     def obj_create(self, bundle, **kwargs):
         return super(ImagePostResource, self).obj_create(bundle, user=bundle.request.user)
-    
+        
     class Meta(PostMeta):
         queryset = ImagePost.objects.all()
         resource_name = 'image_post'
@@ -282,6 +282,7 @@ class PostResource(ModelResource):
         queryset = Post.objects.all().select_subclasses()
         authorization = PostAuthorization()
         resource_name = 'post'
+        allowed_methods = ['get']
 
 class PostCommentResource(ModelResource):
     post = fields.ForeignKey(PostResource, 'post')
