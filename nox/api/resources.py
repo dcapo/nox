@@ -43,7 +43,22 @@ class PostOpinionMeta(CommonMeta):
         "post": ALL_WITH_RELATIONS
     }
 
-class CreateUserResource(ModelResource):
+class MultipartResource(object):
+    def deserialize(self, request, data, format=None):
+        if not format:
+            format = request.META.get('CONTENT_TYPE', 'application/json')
+
+        if format == 'application/x-www-form-urlencoded':
+            return request.POST
+
+        if format.startswith('multipart'):
+            data = request.POST.copy()
+            data.update(request.FILES)
+            return data
+
+        return super(MultipartResource, self).deserialize(request, data, format)
+
+class CreateUserResource(MultipartResource, ModelResource):
     class Meta:
         queryset = User.objects.all()
         validation = FormValidation(form_class=CustomUserForm)
@@ -52,10 +67,13 @@ class CreateUserResource(ModelResource):
         authorization = Authorization()
         always_return_data = True
         allowed_methods = ['post']
-        fields = ['email', 'first_name', 'last_name', 'last_login', 'phone_number']
+        fields = ['email', 'first_name', 'last_name', 'last_login', 'phone_number', 'icon']
     
     def obj_create(self, bundle, **kwargs):
+        bundle.data['final_icon'] = getattr(bundle.data, 'icon', User.get_random_icon())
+        bundle.data['icon'] = None;
         bundle = super(CreateUserResource, self).obj_create(bundle, **kwargs)
+        bundle.obj.icon = bundle.data['icon_copy']
         bundle.obj.set_password(bundle.data.get('password'))
         bundle.obj.save()
         return bundle
@@ -199,21 +217,6 @@ class TextPostResource(ModelResource):
     class Meta(PostMeta):
         queryset = TextPost.objects.all()
         resource_name = 'text_post'
-
-class MultipartResource(object):
-    def deserialize(self, request, data, format=None):
-        if not format:
-            format = request.META.get('CONTENT_TYPE', 'application/json')
-
-        if format == 'application/x-www-form-urlencoded':
-            return request.POST
-
-        if format.startswith('multipart'):
-            data = request.POST.copy()
-            data.update(request.FILES)
-            return data
-
-        return super(MultipartResource, self).deserialize(request, data, format)
 
 class ImagePostResource(MultipartResource, ModelResource):
     event = fields.ForeignKey(EventResource, 'event')
