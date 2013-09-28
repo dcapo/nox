@@ -1,4 +1,5 @@
 import os
+import sys
 import dj_database_url
 # here() gives us file paths from the root of the system to the directory
 # holding the current file.
@@ -9,7 +10,7 @@ PROJECT_ROOT = here("..")
 # folder(s) we pass it starting at the parent directory of the current file.
 root = lambda * x: os.path.join(os.path.abspath(PROJECT_ROOT), *x)
 
-DEBUG = True
+DEBUG = False
 USE_S3 = True
 TEMPLATE_DEBUG = DEBUG
 
@@ -171,7 +172,8 @@ LOGGING = {
         'console':{
             'level': 'WARNING',
             'filters': ['require_debug_false'],
-            'class': 'logging.StreamHandler'
+            'class': 'logging.StreamHandler',
+            'stream': sys.stdout
         }
     },
     'loggers': {
