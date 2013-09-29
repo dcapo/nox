@@ -59,7 +59,6 @@ class MultipartResource(object):
         return super(MultipartResource, self).deserialize(request, data, format)
     
     def put_detail(self, request, **kwargs):
-        import pdb; pdb.set_trace()
         if request.META.get('CONTENT_TYPE').startswith('multipart') and not hasattr(request, '_body'):
             request._body = ''
         return super(MultipartResource, self).put_detail(request, **kwargs)
