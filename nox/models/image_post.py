@@ -28,5 +28,5 @@ class ImagePost(Post):
 def image_post_delete_handler(sender, **kwargs):
     image_post = kwargs['instance']
     storage = image_post.image.storage
-    image_url = image_post.image.url
-    storage.delete(image_post.image.url)
+    image_name = image_post.image.name
+    storage.delete(image_post.image.name)
