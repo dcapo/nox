@@ -20,6 +20,6 @@ v1_api.register(api.PostDislikeResource())
 urlpatterns = patterns('',
 url(r'^$', TemplateView.as_view(template_name="index.html")),
 url(r'^api/', include(v1_api.urls)),
-# (r'^(?P<path>.*)$', 'django.views.static.serve', 
-# {'document_root': settings.MEDIA_ROOT}),
+(r'^(?P<path>.*)$', 'django.views.static.serve', 
+{'document_root': settings.MEDIA_ROOT}),
 )

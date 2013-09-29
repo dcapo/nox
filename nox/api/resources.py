@@ -57,6 +57,12 @@ class MultipartResource(object):
             return data
 
         return super(MultipartResource, self).deserialize(request, data, format)
+    
+    def put_detail(self, request, **kwargs):
+        import pdb; pdb.set_trace()
+        if request.META.get('CONTENT_TYPE').startswith('multipart') and not hasattr(request, '_body'):
+            request._body = ''
+        return super(MultipartResource, self).put_detail(request, **kwargs)
 
 class CreateUserResource(MultipartResource, ModelResource):
     class Meta:
@@ -70,7 +76,9 @@ class CreateUserResource(MultipartResource, ModelResource):
         fields = ['email', 'first_name', 'last_name', 'last_login', 'phone_number', 'icon']
     
     def obj_create(self, bundle, **kwargs):
-        bundle.data['final_icon'] = getattr(bundle.data, 'icon', User.get_random_icon())
+        bundle.data['icon_copy'] = getattr(bundle.data, 'icon', None)
+        if not bundle.data['icon_copy']:
+            bundle.data['icon_copy'] = bundle.obj.get_default_icon()
         bundle.data['icon'] = None;
         bundle = super(CreateUserResource, self).obj_create(bundle, **kwargs)
         bundle.obj.icon = bundle.data['icon_copy']
@@ -88,14 +96,14 @@ class CreateUserResource(MultipartResource, ModelResource):
         del bundle.data['password']
         return bundle
         
-class UserResource(ModelResource):
+class UserResource(MultipartResource, ModelResource):
     class Meta(CommonMeta):
         queryset = User.objects.all()
         resource_name = 'user'
-        allowed_methods = ['get', 'put', 'patch', 'delete']
+        allowed_methods = ['get', 'put', 'delete']
         always_return_data = True
         validation = FormValidation(form_class=CustomUserForm)
-        fields = ['email', 'first_name', 'last_name', 'last_login', 'phone_number', 'id']
+        fields = ['email', 'first_name', 'last_name', 'last_login', 'phone_number', 'icon', 'id']
     
     def prepend_urls(self):
         return [

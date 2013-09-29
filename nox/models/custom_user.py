@@ -41,8 +41,7 @@ class CustomUser(AbstractBaseUser):
         extension = os.path.splitext(filename)[-1]
         prefix = Util.random_filename()
         filename = "%s%s" % (prefix, extension)
-        import pdb; pdb.set_trace()
-        return "user_icon/%s/%s" % (instance.id, filename)
+        return "user/%s/%s" % (instance.id, filename)
         
     storage = S3BotoStorage() if USE_S3 else None
     
@@ -68,11 +67,8 @@ class CustomUser(AbstractBaseUser):
         # For this case we return email. Could also be User.first_name if you have this field
         return self.first_name
     
-    @staticmethod
-    def get_random_icon():
-        print('get_random_icon')
-        import pdb; pdb.set_trace()
-        return None;
+    def get_default_icon(self):
+        return "user/default.jpg"
  
     def __unicode__(self):
         return self.email

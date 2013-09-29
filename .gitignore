@@ -1,4 +1,6 @@
 .DS_Store
 *.pyc
-/uploads/
+/media/
 /back_end/settings/local.py
+
+!/media/user_icon/default.jpg
