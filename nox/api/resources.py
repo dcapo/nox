@@ -72,10 +72,10 @@ class CreateUserResource(MultipartResource, ModelResource):
         authorization = Authorization()
         always_return_data = True
         allowed_methods = ['post']
-        fields = ['email', 'first_name', 'last_name', 'last_login', 'phone_number', 'icon']
+        fields = ['email', 'first_name', 'last_name', 'last_login', 'phone_number', 'icon', 'id']
     
     def obj_create(self, bundle, **kwargs):
-        bundle.data['icon_copy'] = getattr(bundle.data, 'icon', None)
+        bundle.data['icon_copy'] = bundle.data.get('icon')
         if not bundle.data['icon_copy']:
             bundle.data['icon_copy'] = bundle.obj.get_default_icon()
         bundle.data['icon'] = None;
