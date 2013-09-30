@@ -16,3 +16,4 @@ class Comment(models.Model):
     class Meta:
         db_table = "comment"
         app_label = "nox"
+        ordering = ['created_at']
