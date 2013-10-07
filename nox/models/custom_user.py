@@ -61,7 +61,8 @@ class CustomUser(AbstractBaseUser):
  
     def get_full_name(self):
         # For this case we return email. Could also be User.first_name User.last_name if you have these fields
-        return "%s %s" % (self.first_name, self.last_name)
+        last_name = ' %s' % (self.last_name) if self.last_name else ''
+        return "%s%s" % (self.first_name, last_name)
  
     def get_short_name(self):
         # For this case we return email. Could also be User.first_name if you have this field
