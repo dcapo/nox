@@ -241,7 +241,7 @@ class InviteResource(ModelResource):
         view = '' if bundle.obj.rsvp else ' view'
         alert = "You've been invited to%s the nox, '%s'." % (view, bundle.obj.event.name)
         if bundle.obj.user != bundle.obj.event.creator:
-            notify_user(request.user, alert=alert)
+            notify_user(bundle.obj.user, alert=alert)
         return bundle
         
         
