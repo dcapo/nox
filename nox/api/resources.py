@@ -11,9 +11,11 @@ from tastypie.validation import FormValidation
 from tastypie.resources import ModelResource, ALL, ALL_WITH_RELATIONS
 from tastypie import fields
 from tastypie.models import ApiKey, create_api_key
-from tastypie.http import HttpUnauthorized, HttpForbidden
+from tastypie.http import HttpUnauthorized, HttpForbidden, HttpBadRequest
 from tastypie.utils import trailing_slash
 from tastypie.exceptions import BadRequest, Unauthorized
+from zeropush.models import PushDevice
+from zeropush import notify_user
 from nox.models import Event, Invite, Post, TextPost, ImagePost, PlacePost, Comment, PostLike, PostDislike
 from nox.models import EventForm, CustomUserForm, PostLikeForm, PostDislikeForm
 from localflavor.us.forms import USPhoneNumberField
@@ -80,6 +82,8 @@ class CreateUserResource(MultipartResource, ModelResource):
             bundle.data['icon_copy'] = bundle.obj.get_default_icon()
         bundle.data['icon'] = None;
         bundle = super(CreateUserResource, self).obj_create(bundle, **kwargs)
+        if bundle.data['push_token']:
+            device, created = PushDevice.objects.get_or_create(token=token_string, user=bundle.obj)
         bundle.obj.icon = bundle.data['icon_copy']
         bundle.obj.set_password(bundle.data.get('password'))
         bundle.obj.save()
@@ -109,13 +113,40 @@ class UserResource(MultipartResource, ModelResource):
             url(r"^(?P<resource_name>%s)/login%s$" % (self._meta.resource_name, trailing_slash()), 
                                                       self.wrap_view('login'), name="api_login"),
             url(r"^(?P<resource_name>%s)/search%s$" % (self._meta.resource_name, trailing_slash()),
-                                                       self.wrap_view('contact_search'), name="api_login"),
+                                                       self.wrap_view('contact_search'), name="api_contact_search"),
+            url(r"^(?P<resource_name>%s)/push_test%s$" % (self._meta.resource_name, trailing_slash()),
+                                                          self.wrap_view('push_test'), name="api_push_test"),
+            url(r"^(?P<resource_name>%s)/push_token%s$" % (self._meta.resource_name, trailing_slash()),
+                                                          self.wrap_view('push_token'), name="api_push_token"),
         ]
+    
+    def push_token(self, request, **kwargs):
+        self.method_check(request, allowed=['post'])
+        self.is_authenticated(request)
+        data = self.deserialize(request, request.body, format=request.META.get('CONTENT_TYPE', 'application/json'))
+        
+        token = data.get('push_token')
+        if not token:
+            return self.create_response(request, 'push_token must be provided.', HttpBadRequest)
+        
+        device, created = PushDevice.objects.get_or_create(token=token, user=request.user)
+        return self.create_response(request, 'push notification token registered with nox.')
+        
+    def push_test(self, request, **kwargs):
+        self.method_check(request, allowed=['post'])
+        self.is_authenticated(request)
+        data = self.deserialize(request, request.body, format=request.META.get('CONTENT_TYPE', 'application/json'))
+        
+        alert = data.get('alert', 'nox rox')
+        
+        notify_user(request.user, alert=alert)
+        return self.create_response(request, 'push notification sent')
     
     def contact_search(self, request, **kwargs):
         self.method_check(request, allowed=['post'])
-        
+        self.is_authenticated(request)
         data = self.deserialize(request, request.body, format=request.META.get('CONTENT_TYPE', 'application/json'))
+        
         phone_numbers = set()
         emails = set()
         for contact in data:
@@ -205,6 +236,15 @@ class InviteResource(ModelResource):
     user = fields.ForeignKey(UserResource, 'user')
     event = fields.ForeignKey(EventResource, 'event')
     
+    def obj_create(self, bundle, **kwargs):
+        bundle = super(InviteResource, self).obj_create(bundle, user=bundle.request.user)
+        view = '' if bundle.obj.rsvp else ' view'
+        alert = "You've been invited to%s the nox, '%s'." % (view, bundle.obj.event.name)
+        if bundle.obj.user != bundle.obj.event.creator:
+            notify_user(request.user, alert=alert)
+        return bundle
+        
+        
     class Meta(CommonMeta):
         queryset = Invite.objects.all()
         resource_name = 'invite'

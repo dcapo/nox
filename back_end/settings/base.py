@@ -127,6 +127,7 @@ THIRD_PARTY_APPS = (
     'south',
     'tastypie',
     'storages',
+    'zeropush',
 )
 
 LOCAL_APPS = (
@@ -138,6 +139,8 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 AUTH_USER_MODEL = 'nox.CustomUser'
 TASTYPIE_DEFAULT_FORMATS = ['json']
 TASTYPIE_DATETIME_FORMATTING = 'iso-8601-strict'
+
+ZEROPUSH_AUTH_TOKEN="3YafE8NgQFsMr1QtsdPP"
 
 # APPEND_SLASH = False
 # TASTYPIE_ALLOW_MISSING_SLASH = True
