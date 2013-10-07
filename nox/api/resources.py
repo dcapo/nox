@@ -239,7 +239,7 @@ class InviteResource(ModelResource):
     def obj_create(self, bundle, **kwargs):
         bundle = super(InviteResource, self).obj_create(bundle, user=bundle.request.user)
         view = '' if bundle.obj.rsvp else ' view'
-        alert = "%s invited you to%s the nox, %s!" % (request.user.get_full_name(), view, bundle.obj.event.name)
+        alert = "%s invited you to%s the nox: %s" % (request.user.get_full_name(), view, bundle.obj.event.name)
         if bundle.obj.user != bundle.obj.event.creator:
             notify_user(bundle.obj.user, alert=alert)
         return bundle
