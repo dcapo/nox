@@ -88,7 +88,7 @@ class InviteAuthorization(BaseAuthorization):
     def update_detail(self, object_list, bundle):
         return bundle.request.user in bundle.obj.event.users.all()
 
-# SubPost = comment, like, dislike
+# SubPost = comment, opinion
 class SubPostAuthorization(BaseAuthorization):
     def read_list(self, object_list, bundle):
         events = bundle.request.user.invite_set.values('event_id')
@@ -108,4 +108,8 @@ class SubPostAuthorization(BaseAuthorization):
 
     def update_detail(self, object_list, bundle):
         raise Unauthorized("Sorry, updating is not allowed on this resource.")
+
+class OpinionAuthorization(SubPostAuthorization):
+    def update_detail(self, object_list, bundle):
+        return bundle.request.user == bundle.obj.user
 

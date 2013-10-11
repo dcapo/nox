@@ -13,6 +13,9 @@ class Event(models.Model):
     ended_at = models.DateTimeField(null=True, blank=True)
     name = models.CharField(max_length=255)
     creator = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="created_events")
+    longitude = models.DecimalField(max_digits=11, decimal_places=6, null=True)
+    latitude = models.DecimalField(max_digits=11, decimal_places=6, null=True)
+    venue_id = models.CharField(max_length=255, null=True)
     users = models.ManyToManyField(settings.AUTH_USER_MODEL, through="Invite", blank=True)
     
     def __unicode__(self):
@@ -26,11 +29,10 @@ class Event(models.Model):
 class EventForm(ModelForm):
     class Meta:
         model = Event
-        fields = ['name', 'creator', 'started_at', 'ended_at']
+        fields = ['name', 'creator', 'started_at', 'ended_at', 'latitude', 'longitude', 'venue_id']
 
 # Clean up the local event directory.
-# This doesn't need to be done in production because S3 uses buckets,
-# not directories.
+# This doesn't need to be done in production because S3 uses buckets, not directories.
 @receiver(post_delete, sender=Event)
 def event_delete_handler(sender, **kwargs):
     if not USE_S3:

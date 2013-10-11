@@ -14,8 +14,7 @@ v1_api.register(api.ImagePostResource())
 v1_api.register(api.PlacePostResource())
 v1_api.register(api.PostResource())
 v1_api.register(api.PostCommentResource())
-v1_api.register(api.PostLikeResource())
-v1_api.register(api.PostDislikeResource())
+v1_api.register(api.PostOpinionResource())
 
 urlpatterns = patterns('',
 url(r'^$', TemplateView.as_view(template_name="index.html")),

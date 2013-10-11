@@ -10,8 +10,7 @@ class Post(models.Model):
     longitude = models.DecimalField(max_digits=11, decimal_places=6, null=True)
     latitude = models.DecimalField(max_digits=11, decimal_places=6, null=True)
     event = models.ForeignKey(Event)
-    likes = models.ManyToManyField(settings.AUTH_USER_MODEL, through="PostLike", blank=True, related_name="likes")
-    dislikes = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, through="PostDislike", related_name="dislikes")
+    opinions = models.ManyToManyField(settings.AUTH_USER_MODEL, through="PostOpinion", blank=True, related_name="opinions")
     
     objects = InheritanceManager()
     

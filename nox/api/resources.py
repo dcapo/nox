@@ -4,7 +4,7 @@ from django.conf.urls import url
 from django.core.exceptions import ValidationError
 from django import forms
 from tastypie.authorization import Authorization
-from authorizations import EventAuthorization, PostAuthorization, InviteAuthorization, SubPostAuthorization
+from authorizations import EventAuthorization, PostAuthorization, InviteAuthorization, SubPostAuthorization, OpinionAuthorization
 from validations import ModelFormValidation
 from tastypie.authentication import Authentication, ApiKeyAuthentication, BasicAuthentication
 from tastypie.validation import FormValidation
@@ -15,9 +15,9 @@ from tastypie.http import HttpUnauthorized, HttpForbidden, HttpBadRequest
 from tastypie.utils import trailing_slash
 from tastypie.exceptions import BadRequest, Unauthorized
 from zeropush.models import PushDevice
-from zeropush import notify_user
-from nox.models import Event, Invite, Post, TextPost, ImagePost, PlacePost, Comment, PostLike, PostDislike
-from nox.models import EventForm, CustomUserForm, PostLikeForm, PostDislikeForm
+from zeropush import notify_user, notify_devices
+from nox.models import Event, Invite, Post, TextPost, ImagePost, PlacePost, PostComment, PostOpinion
+from nox.models import EventForm, CustomUserForm, PostOpinionForm
 from localflavor.us.forms import USPhoneNumberField
 import datetime
 import re
@@ -36,13 +36,6 @@ class PostMeta(CommonMeta):
     filtering = {
         "event": ALL_WITH_RELATIONS,
         "id": ALL
-    }
-
-class PostOpinionMeta(CommonMeta):
-    fields = ['id', 'user', 'post']
-    authorization = SubPostAuthorization()
-    filtering = {
-        "post": ALL_WITH_RELATIONS
     }
 
 class MultipartResource(object):
@@ -227,7 +220,8 @@ class EventResource(ModelResource):
         always_return_data = True
         authorization = EventAuthorization()
         validation = FormValidation(form_class=EventForm)
-        fields = ['id', 'name', 'creator', 'created_at', 'updated_at', 'started_at', 'ended_at']
+        fields = ['id', 'name', 'creator', 'created_at', 'updated_at', 'started_at', 'ended_at', 
+                  'latitude', 'longitude', 'venue_id']
         filtering = {
             "id": ALL
         }
@@ -239,7 +233,7 @@ class InviteResource(ModelResource):
     def obj_create(self, bundle, **kwargs):
         bundle = super(InviteResource, self).obj_create(bundle, user=bundle.request.user)
         view = '' if bundle.obj.rsvp else ' view'
-        alert = "%s invited you to%s the nox, '%s'" % (bundle.request.user.get_full_name(), view, bundle.obj.event.name)
+        alert = "%s invited you to%s '%s'" % (bundle.request.user.get_full_name(), view, bundle.obj.event.name)
         if bundle.obj.user != bundle.obj.event.creator:
             notify_user(bundle.obj.user, alert=alert)
         return bundle
@@ -259,7 +253,20 @@ class TextPostResource(ModelResource):
     user = fields.ForeignKey(UserResource, 'user', full=True)
     
     def obj_create(self, bundle, **kwargs):
-        return super(TextPostResource, self).obj_create(bundle, user=bundle.request.user)
+        bundle = super(TextPostResource, self).obj_create(bundle, user=bundle.request.user)
+        # send push notifications
+        user_ids = bundle.obj.event.users.filter(~models.Q(id=bundle.request.user.id)).values('id')
+        devices = PushDevice.objects.filter(user_id__in=user_ids)
+        body = bundle.obj.body
+        alert = "%s posted a message to '%s': '" % (bundle.request.user.get_full_name(), bundle.obj.event.name)
+        
+        if len(alert) + len(body) > 200:
+            # Apple allows the push notification payload to be 256 bytes, so 200 is a safe under-estimate
+            difference = 200 - len(alert)
+            body = body[:difference] + '...'
+        alert = alert + body + "'"
+        notify_devices(devices, alert=alert)
+        return bundle
     
     class Meta(PostMeta):
         queryset = TextPost.objects.all()
@@ -271,7 +278,13 @@ class ImagePostResource(MultipartResource, ModelResource):
     image = fields.FileField(attribute="image", null=True, blank=True)
     
     def obj_create(self, bundle, **kwargs):
-        return super(ImagePostResource, self).obj_create(bundle, user=bundle.request.user)
+        bundle = super(ImagePostResource, self).obj_create(bundle, user=bundle.request.user)
+        #send push notifications
+        user_ids = bundle.obj.event.users.filter(~models.Q(id=bundle.request.user.id)).values('id')
+        devices = PushDevice.objects.filter(user_id__in=user_ids)
+        alert = "%s uploaded a picture to '%s'" % (bundle.request.user.get_full_name(), bundle.obj.event.name)
+        notify_devices(devices, alert=alert)
+        return bundle
         
     class Meta(PostMeta):
         queryset = ImagePost.objects.all()
@@ -282,7 +295,20 @@ class PlacePostResource(ModelResource):
     user = fields.ForeignKey(UserResource, 'user', full=True)
 
     def obj_create(self, bundle, **kwargs):
-        return super(PlacePostResource, self).obj_create(bundle, user=bundle.request.user)
+        bundle = super(PlacePostResource, self).obj_create(bundle, user=bundle.request.user)
+        # update the location of the event
+        import pdb; pdb.set_trace()
+        event = bundle.obj.event
+        event.latitude = bundle.obj.latitude
+        event.longitude = bundle.obj.longitude
+        event.venue_id = bundle.obj.venue_id
+        event.save()
+        # send push notifications
+        user_ids = bundle.obj.event.users.filter(~models.Q(id=bundle.request.user.id)).values('id')
+        devices = PushDevice.objects.filter(user_id__in=user_ids)
+        alert = "%s changed the location of '%s'" % (bundle.request.user.get_full_name(), bundle.obj.event.name)
+        notify_devices(devices, alert=alert)
+        return bundle
 
     class Meta(PostMeta):
         queryset = PlacePost.objects.all()
@@ -290,21 +316,7 @@ class PlacePostResource(ModelResource):
 
 class PostResource(ModelResource):
     event = fields.ForeignKey(EventResource, 'event')
-    likes = fields.ToManyField(UserResource, 'likes', null=True)
-    
-    @staticmethod
-    def get_opinion(post, user):
-        opinion = {
-            "dislike": -1,
-            "none": 0,
-            "like": 1
-        }
-        if user in post.likes.all():
-            return opinion['like']
-        elif user in post.dislikes.all():
-            return opinion['dislike']
-        else:
-            return opinion['none']
+    opinions = fields.ToManyField(UserResource, 'opinions', null=True)
     
     def dehydrate(self, bundle):
         if isinstance(bundle.obj, TextPost):
@@ -315,17 +327,27 @@ class PostResource(ModelResource):
             image_post_resource = ImagePostResource()
             image_post_bundle = image_post_resource.build_bundle(obj=bundle.obj, request=bundle.request)
             bundle.data = image_post_resource.full_dehydrate(image_post_bundle).data
-        bundle.data['comment_count'] = bundle.obj.comment_set.count()
-        bundle.data['like_count'] = bundle.obj.likes.count()
-        bundle.data['dislike_count'] = bundle.obj.dislikes.count()
-        bundle.data['opinion'] = PostResource.get_opinion(bundle.obj, bundle.request.user)
+        elif isinstance(bundle.obj, PlacePost):
+            place_post_resource = PlacePostResource()
+            place_post_bundle = place_post_resource.build_bundle(obj=bundle.obj, request=bundle.request)
+            bundle.data = place_post_resource.full_dehydrate(place_post_bundle).data
+        bundle.data['comment_count'] = bundle.obj.comments.count()
+        bundle.data['like_count'] = bundle.obj.opinions.filter(postopinion=True).count()
+        bundle.data['dislike_count'] = bundle.obj.opinions.filter(postopinion=False).count()
+        
         try:
-            first_comment = bundle.obj.comment_set.all()[:1].get()
+            opinion = PostOpinion.objects.get(post=bundle.obj, user=bundle.request.user).opinion
+            bundle.data['opinion'] = opinion
+        except PostOpinion.DoesNotExist:
+            pass
+            
+        try:
+            first_comment = bundle.obj.comments.all()[:1].get()
             post_comment_resource = PostCommentResource()
             post_comment_bundle = post_comment_resource.build_bundle(obj=first_comment, request=bundle.request)
             bundle.data['first_comment'] = post_comment_resource.full_dehydrate(post_comment_bundle).data
-        except Comment.DoesNotExist:
-            bundle.data['first_comment'] = None;
+        except PostComment.DoesNotExist:
+            pass
         return bundle
 
     class Meta(PostMeta):
@@ -340,7 +362,9 @@ class PostCommentResource(ModelResource):
     fields = ['body', 'post', 'user']
     
     def obj_create(self, bundle, **kwargs):
-        return super(PostCommentResource, self).obj_create(bundle, user=bundle.request.user)
+        bundle = super(PostCommentResource, self).obj_create(bundle, user=bundle.request.user)
+        
+        return bundle
     
     def build_filters(self, filters=None):
         if 'post__id' not in filters and 'event__id' not in filters:
@@ -348,9 +372,9 @@ class PostCommentResource(ModelResource):
         return super(PostCommentResource, self).build_filters(filters)
     
     class Meta(CommonMeta):
-        queryset = Comment.objects.all()
+        queryset = PostComment.objects.all()
         authorization = SubPostAuthorization()
-        resource_name = 'comment'
+        resource_name = 'post_comment'
         filtering = {
             "post": ALL_WITH_RELATIONS
         }
@@ -367,15 +391,12 @@ class PostOpinionResource(ModelResource):
             raise BadRequest("This resource must be filtered by post or event.")
         return super(PostOpinionResource, self).build_filters(filters)
     
-class PostLikeResource(PostOpinionResource):
-    class Meta(PostOpinionMeta):
-        queryset = PostLike.objects.all()
-        validation = ModelFormValidation(form_class=PostLikeForm)
-        resource_name = 'post_like'
-
-class PostDislikeResource(PostOpinionResource):
     class Meta(CommonMeta):
-        queryset = PostDislike.objects.all()
-        validation = ModelFormValidation(form_class=PostDislikeForm)
-        resource_name = 'post_dislike'
-
+        queryset = PostOpinion.objects.all()
+        validation = ModelFormValidation(form_class=PostOpinionForm)
+        resource_name = 'post_opinion'
+        fields = ['id', 'user', 'post', 'opinion']
+        authorization = OpinionAuthorization()
+        filtering = {
+            "post": ALL_WITH_RELATIONS
+        }
