@@ -297,7 +297,6 @@ class PlacePostResource(ModelResource):
     def obj_create(self, bundle, **kwargs):
         bundle = super(PlacePostResource, self).obj_create(bundle, user=bundle.request.user)
         # update the location of the event
-        import pdb; pdb.set_trace()
         event = bundle.obj.event
         event.latitude = bundle.obj.latitude
         event.longitude = bundle.obj.longitude
