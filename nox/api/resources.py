@@ -76,7 +76,7 @@ class CreateUserResource(MultipartResource, ModelResource):
         bundle.data['icon'] = None;
         bundle = super(CreateUserResource, self).obj_create(bundle, **kwargs)
         if bundle.data['push_token']:
-            device, created = PushDevice.objects.get_or_create(token=token_string, user=bundle.obj)
+            device, created = PushDevice.objects.get_or_create(token=bundle.data['push_token'], user=bundle.obj)
         bundle.obj.icon = bundle.data['icon_copy']
         bundle.obj.set_password(bundle.data.get('password'))
         bundle.obj.save()
