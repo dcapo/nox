@@ -8,8 +8,8 @@ except ImportError:
 
 if USE_S3:
     AWS_STORAGE_BUCKET_NAME = 'nox-app'
-    AWS_ACCESS_KEY_ID = 'AKIAIENZYKYEP57Y6T6Q'
-    AWS_SECRET_ACCESS_KEY = '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'
+    AWS_ACCESS_KEY_ID = ''
+    AWS_SECRET_ACCESS_KEY = ''
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto.S3BotoStorage'
     STATICFILES_STORAGE = 'storages.backends.s3boto.S3BotoStorage'
     S3_URL = 'http://%s.s3.amazonaws.com/' % AWS_STORAGE_BUCKET_NAME
