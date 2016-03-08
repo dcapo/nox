@@ -1,1 +1,1 @@
-Nox is an event-based social network. Share photos, videos, and more with other friends at an event, by invite only.
+Nox is an event-based social networking iOS app. Share photos, videos, and more with other friends at an event, by invite only. This repository contains the server-side code for the app, which uses Django and Tastypie.
